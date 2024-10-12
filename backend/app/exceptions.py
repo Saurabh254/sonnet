@@ -25,3 +25,15 @@ class ServerError(Exception):
 class ResourceNotFound(ServerError):
     def __init__(self, message: str = "Not found", status_code: int = 404) -> None:
         super().__init__(message=message, status_code=status_code)
+
+
+class UnauthorisedUser(ServerError):
+    def __init__(self, message: str = "unauthorised", status_code: int = 401) -> None:
+        super().__init__(message=message, status_code=status_code)
+
+
+class InvalidSession(ServerError):
+    def __init__(
+        self, message: str = "invalid session", status_code: int = 403
+    ) -> None:
+        super().__init__(message=message, status_code=status_code)
