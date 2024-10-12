@@ -1,15 +1,9 @@
-from typing import Annotated, Any
-from fastapi import Depends, Cookie, Request
+from typing import Any
+from fastapi import Depends
 from app.exceptions import UnauthorisedUser, InvalidSession
 from app.utils.common import get_redis_conn_dep
 import redis
-
-getSessionIdDep = Annotated[
-    str, Cookie(None, alias="session_id")
-]  # TODO: romove None from here in future
-getUserIdDep = Annotated[
-    str, Cookie(None, alias="user_id")
-]  # TODO: romove None from here in future
+from .dependency import getSessionIdDep, getUserIdDep
 
 
 def _check_session_id_validation(
