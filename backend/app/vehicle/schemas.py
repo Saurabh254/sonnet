@@ -1,3 +1,8 @@
+from typing import Dict
+from pydantic import BaseModel
+from geoalchemy2.elements import WKBElement
+from sqlalchemy.orm import Session
+from shapely import wkb
 from typing import Dict, Optional
 
 from pydantic import BaseModel, Field
@@ -25,9 +30,35 @@ class VehicleUpdate(BaseModel):
     location: Location
 
 
-class VehicleProfile(VehicleBase):
+# Helper function to convert location data to lat/lng
+def extract_coordinates(location: WKBElement) -> Dict[str, float]:
+    if location:
+        point = wkb.loads(bytes(location.data))  # Use shapely to load the WKB data
+        return {
+            "latitude": point.y,
+            "longitude": point.x,
+        }  # Extract lat (y) and long (x)
+    return {"latitude": None, "longitude": None}
+
+
+class VehicleProfile(BaseModel):
+    license_number: str
+    registration_number: str
+    capacity: int
     driver_id: str
     location: Dict[str, float]
+
+    @classmethod
+    def from_orm(cls, vehicle: "Vehicle"):
+        return cls(
+            license_number=vehicle.license_number,
+            registration_number=vehicle.registration_number,
+            capacity=vehicle.capacity,
+            driver_id=str(vehicle.driver_id),
+            location=extract_coordinates(
+                vehicle.location
+            ),  # Convert location to lat/long dict
+        )
 
     class Config:
         orm_mode = True

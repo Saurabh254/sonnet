@@ -1,7 +1,9 @@
+from sqlalchemy import select
+
 from typing import Dict
 from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from geoalchemy2.elements import WKTElement
 from app.drivers import models as driver_models
 
 from . import errors, models, schemas
@@ -117,3 +119,23 @@ async def update_vehicle_location(
     updated_stmt = select(models.Vehicle).filter(models.Vehicle.id == vehicle_id)
     result = await db.execute(updated_stmt)
     return result.scalar_one_or_none()
+
+
+async def get_vehicles_within_radius(
+    db: AsyncSession, latitude: float, longitude: float, radius_km: float
+) -> list[models.Vehicle]:
+    # Create a POINT geometry from the provided latitude and longitude
+    reference_point = WKTElement(f"POINT({longitude} {latitude})", srid=4326)
+
+    # Perform the query using ST_DWithin to get vehicles within the given radius
+    stmt = select(models.Vehicle).where(
+        func.ST_DWithin(
+            models.Vehicle.location,  # The location column in the Vehicle model
+            reference_point,  # The reference point (WKTElement)
+            radius_km * 1000,  # Convert radius to meters
+        )
+    )
+
+    result = await db.execute(stmt)
+    vehicles = result.scalars().all()
+    return vehicles

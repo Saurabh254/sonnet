@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import auth
@@ -32,6 +32,26 @@ async def get_vehicle(
     db: AsyncSession = Depends(get_async_db),
 ):
     return await interface.get_vehicle(current_driver.id, db)
+
+
+@router.get(
+    "/nearby",
+    response_model=list[schemas.VehicleProfile],
+    description="Retrieve vehicles within a specified radius (default 5km) of a given location.",
+)
+async def get_nearby_vehicles(
+    latitude: float = Query(..., description="Latitude of the reference location"),
+    longitude: float = Query(..., description="Longitude of the reference location"),
+    radius_km: float = Query(
+        5.0, description="Radius in kilometers within which to search for vehicles"
+    ),
+    db: AsyncSession = Depends(get_async_db),
+):
+    vehicles = await interface.get_vehicles_within_radius(
+        db, latitude, longitude, radius_km
+    )
+
+    return [schemas.VehicleProfile.from_orm(vehicle) for vehicle in vehicles]
 
 
 @router.put(
