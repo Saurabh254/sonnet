@@ -1,5 +1,6 @@
 import os
 from typing import Literal
+
 from pydantic import PostgresDsn
 
 POSTGRES_USER: str = "postgres"

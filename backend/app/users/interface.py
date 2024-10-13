@@ -1,9 +1,12 @@
 from typing import overload
+
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
-from . import models, schemas, errors
+
 from app.exceptions import UnauthorisedUser
+
+from . import errors, models, schemas
 
 
 async def login_user(phone: str, otp: str, db: AsyncSession) -> models.User:

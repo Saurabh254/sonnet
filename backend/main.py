@@ -1,7 +1,8 @@
 from fastapi import FastAPI
-from app.exception_handling import add_exception_handler
 from fastapi.middleware.cors import CORSMiddleware
+
 from app import api as public_api
+from app.exception_handling import add_exception_handler
 
 app = FastAPI(
     title="Sonnet",

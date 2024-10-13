@@ -1,6 +1,6 @@
-from pydantic import BaseModel
 from typing import Literal
-from pydantic import create_model
+
+from pydantic import BaseModel, create_model
 
 
 class ServerError(Exception):

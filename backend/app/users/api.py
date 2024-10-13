@@ -1,13 +1,12 @@
 from fastapi import APIRouter, Body, Depends, Response
 from sqlalchemy.ext.asyncio import AsyncSession
-from . import models, schemas
+
 from app.auth import auth
 from app.database.db import get_async_db
-from . import interface
 
-router = APIRouter(
-    tags=["User Authentication"],
-)
+from . import interface, models, schemas
+
+router = APIRouter(tags=["User Authentication"], prefix="/users")
 
 
 @router.post(
