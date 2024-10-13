@@ -16,7 +16,7 @@ router = APIRouter(tags=["Vehicle Management"], prefix="/vehicles")
 )
 async def register_vehicle(
     vehicle_data: schemas.VehicleCreate,
-    current_driver: driver_models.Driver = Depends(auth.get_current_active_driver),
+    current_driver: driver_models.Driver = Depends(auth.get_current_driver),
     db: AsyncSession = Depends(get_async_db),
 ):
     return await interface.register_vehicle(vehicle_data, current_driver, db)
@@ -28,10 +28,10 @@ async def register_vehicle(
     response_model=schemas.VehicleProfile,
 )
 async def get_vehicle(
-    current_driver: driver_models.Driver = Depends(auth.get_current_active_driver),
+    current_driver: driver_models.Driver = Depends(auth.get_current_driver),
     db: AsyncSession = Depends(get_async_db),
 ):
-    return await interface.get_vehicle(driver.id, db)
+    return await interface.get_vehicle(current_driver.id, db)
 
 
 @router.put(

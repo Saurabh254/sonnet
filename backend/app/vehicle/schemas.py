@@ -9,19 +9,20 @@ class VehicleBase(BaseModel):
     capacity: int
 
 
+class Location(BaseModel):
+    latitude: float
+    longitude: float
+
+
 class VehicleCreate(VehicleBase):
-    location: Dict[str, float] = Field(
-        ..., description="A dictionary with 'latitude' and 'longitude' keys"
-    )
+    location: Location
 
 
 class VehicleUpdate(BaseModel):
     license_number: Optional[str] = None
     registration_number: Optional[str] = None
     capacity: Optional[int] = None
-    location: Optional[Dict[str, float]] = Field(
-        None, description="A dictionary with 'latitude' and 'longitude' keys"
-    )
+    location: Location
 
 
 class VehicleProfile(VehicleBase):

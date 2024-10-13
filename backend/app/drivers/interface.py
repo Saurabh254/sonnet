@@ -18,9 +18,6 @@ async def login_driver(phone: str, otp: str, db: AsyncSession) -> models.Driver:
     if not driver:
         raise errors.DriverNotFound
 
-    if not driver.active:
-        raise UnauthorisedUser
-
     return driver
 
 

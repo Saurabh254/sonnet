@@ -1,6 +1,6 @@
 from sqlalchemy import Boolean, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
+from app.vehicle import models
 from app.database.mixins import BaseModel
 
 

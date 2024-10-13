@@ -1,9 +1,21 @@
+from typing import Dict
 from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.drivers import models as driver_models
 
 from . import errors, models, schemas
+
+
+from geoalchemy2.shape import to_shape
+
+
+def wkb_to_dict(location) -> Dict[str, float]:
+    """Convert WKBElement to a dict containing latitude and longitude."""
+    if location is not None:
+        point = to_shape(location)  # Convert to a shapely Point object
+        return {"latitude": point.y, "longitude": point.x}
+    return {"latitude": None, "longitude": None}
 
 
 async def register_vehicle(
@@ -23,20 +35,34 @@ async def register_vehicle(
         license_number=vehicle_data.license_number,
         registration_number=vehicle_data.registration_number,
         capacity=vehicle_data.capacity,
-        location=f'SRID=4326;POINT({vehicle_data.location["longitude"]} {vehicle_data.location["latitude"]})',
+        location=f"SRID=4326;POINT({vehicle_data.location.longitude} {vehicle_data.location.latitude})",
         driver_id=driver.id,
     )
     db.add(new_vehicle)
     await db.commit()
     await db.refresh(new_vehicle)
-    return new_vehicle
+
+    # Convert location to dict before returning
+    vehicle_dict = new_vehicle.__dict__.copy()  # Create a dict copy of the vehicle
+    vehicle_dict["location"] = wkb_to_dict(new_vehicle.location)  # Convert location
+
+    return vehicle_dict  # Return the serialized dict
 
 
 async def get_vehicle(driver_id: str, db: AsyncSession) -> models.Vehicle:
     stmt = select(models.Vehicle).where(models.Vehicle.driver_id == driver_id)
     result = await db.execute(stmt)
     vehicle = result.scalar_one_or_none()
-    return vehicle
+
+    if vehicle:
+        # Convert the location to a dictionary
+        vehicle_dict = (
+            vehicle.__dict__.copy()
+        )  # Copy the vehicle's attributes to a dict
+        vehicle_dict["location"] = wkb_to_dict(vehicle.location)  # Convert the location
+        return vehicle_dict
+
+    return None  # Return None if no vehicle is found
 
 
 async def update_vehicle(

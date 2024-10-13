@@ -44,7 +44,7 @@ async def signup(
     response_model=schemas.DriverProfile,
 )
 async def logout(
-    current_driver: models.Driver = Depends(auth.get_current_active_driver),
+    current_driver: models.Driver = Depends(auth.get_current_driver),
 ):
     return await interface.logout_driver(current_driver)
 
@@ -55,6 +55,6 @@ async def logout(
     description="Retrieve the profile of the currently authenticated driver.",
 )
 async def read_me(
-    current_driver: models.Driver = Depends(auth.get_current_active_driver),
+    current_driver: models.Driver = Depends(auth.get_current_driver),
 ):
     return current_driver

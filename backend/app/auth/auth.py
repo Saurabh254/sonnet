@@ -59,9 +59,9 @@ async def get_current_driver(
     return driver
 
 
-async def get_current_active_driver(
-    driver: driver_models.Driver = Depends(get_current_driver),
-) -> driver_models.Driver:
-    if driver.active:
-        return driver
-    raise UnauthorisedUser(message="forbidden driver")
+# async def get_current_active_driver(
+#     driver: driver_models.Driver = Depends(get_current_driver),
+# ) -> driver_models.Driver:
+#     if driver.active:
+#         return driver
+#     raise UnauthorisedUser(message="forbidden driver")
