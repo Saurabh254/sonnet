@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from app.exception_handling import add_exception_handler
 from fastapi.middleware.cors import CORSMiddleware
-
+from app import api as public_api
 
 app = FastAPI(
     title="Sonnet",
@@ -18,7 +18,7 @@ app = FastAPI(
     },
 )
 
-
+app.include_router(public_api.router)
 add_exception_handler(app)
 app.add_middleware(
     CORSMiddleware,
@@ -33,7 +33,7 @@ app.add_middleware(
     "/health",
     tags=["internal"],
     summary="Health Check",
-    description="This endpoint checks the health status of the application and returns a message indicating if the service is operational."
+    description="This endpoint checks the health status of the application and returns a message indicating if the service is operational.",
 )
 async def check_health():
     return {"status": "we're up"}

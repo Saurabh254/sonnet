@@ -1,21 +1,25 @@
 import datetime
-
+from sqlalchemy import DateTime, Integer, String
+from sqlalchemy.orm import Mapped, mapped_column
 from nanoid import generate
-from sqlalchemy import Column, DateTime, String
-from .db import Base
+from .db import Base  # Assuming you have a Base class defined in your db module
 
 
 class BaseModel(Base):
     __abstract__ = True
 
-    id = Column(String(length=12), primary_key=True, default=lambda: generate(size=12))
-    created_at = Column(
+    id: Mapped[str] = mapped_column(
+        String, primary_key=True, index=True, default=lambda: generate(size=12)
+    )
+    created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True),
+        index=True,
         default=lambda: datetime.datetime.now(datetime.timezone.utc),
     )
-    updated_at = Column(
+    updated_at: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.datetime.now(datetime.timezone.utc),
+        index=True,
         onupdate=lambda: datetime.datetime.now(datetime.timezone.utc),
     )
 

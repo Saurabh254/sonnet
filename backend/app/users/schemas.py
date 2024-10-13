@@ -4,7 +4,6 @@ from datetime import datetime
 
 class UserBase(BaseModel):
     name: str
-    active: bool
 
 
 class UserCreate(UserBase):
@@ -13,7 +12,7 @@ class UserCreate(UserBase):
 
 
 class UserProfile(UserBase):
-    id: int
+    id: str
     created_at: datetime
     updated_at: datetime
 

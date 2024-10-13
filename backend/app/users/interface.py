@@ -1,3 +1,4 @@
+from typing import overload
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
@@ -32,7 +33,7 @@ async def signup_user(user_data: schemas.UserCreate, db: AsyncSession) -> models
     if count:
         raise errors.UserAlreadyExists
 
-    user = models.User(**user_data.model_dump())
+    user = models.User(**user_data.model_dump(exclude={"otp"}))
     db.add(user)
     await db.commit()
     await db.refresh(user)
@@ -43,5 +44,7 @@ async def logout_user(user: models.User) -> dict[str, str]:
     return {"msg": "Successfully logged out"}
 
 
-async def get_user(user: models.User) -> models.User:
-    return user
+async def get_user(user_id: str, db: AsyncSession) -> models.User:
+    stmt = select(models.User).filter(models.User.id == user_id)
+    result = await db.execute(stmt)
+    return result.scalar_one_or_none()

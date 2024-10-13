@@ -1,30 +1,57 @@
-from fastapi import Body, FastAPI, Depends
-from fastapi.security import OAuth2PasswordRequestForm
+from fastapi import APIRouter, Body, Depends, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from . import models, schemas
 from app.auth import auth
-from app.database.db import (
-    get_async_db,
-)  # Adjust import according to your project structure
-from . import interface  # Import your interface
+from app.database.db import get_async_db
+from . import interface
 
-app = FastAPI()
+router = APIRouter(
+    tags=["User Authentication"],
+)
 
 
-@app.post("/login")
+@router.post(
+    "/login",
+    description="Log in the user with a phone number and OTP to get an access token.",
+    response_model=schemas.UserProfile,
+)
 async def login(
-    phone: str = Body(),
-    otp: str = Body(),
+    response: Response,
+    phone: str = Body(..., description="User's phone number"),
+    otp: str = Body(..., description="One-time password sent to the user's phone"),
     db: AsyncSession = Depends(get_async_db),
 ):
-    return await interface.login_user(phone, otp, db)
+    user = await interface.login_user(phone, otp, db)
+    if not user:
+        return user
+    response.set_cookie("user_id", str(user.id))
+    return user
 
 
-@app.post("/logout")
+@router.post(
+    "/signup",
+    description="Sign up a new user using the provided data.",
+    response_model=schemas.UserProfile,
+)
+async def signup(
+    user_data: schemas.UserCreate, db: AsyncSession = Depends(get_async_db)
+):
+    return await interface.signup_user(user_data=user_data, db=db)
+
+
+@router.post(
+    "/logout",
+    description="Logs out the currently authenticated user and invalidates the session.",
+    response_model=schemas.UserProfile,
+)
 async def logout(current_user: models.User = Depends(auth.get_current_active_user)):
     return await interface.logout_user(current_user)
 
 
-@app.get("/me", response_model=schemas.UserProfile)
+@router.get(
+    "/me",
+    response_model=schemas.UserProfile,
+    description="Retrieve the profile of the currently authenticated user.",
+)
 async def read_me(current_user: models.User = Depends(auth.get_current_active_user)):
     return current_user
