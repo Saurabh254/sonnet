@@ -4,7 +4,7 @@ from geoalchemy2.elements import WKBElement
 from sqlalchemy.orm import Session
 from shapely import wkb
 from typing import Dict, Optional
-
+from app.drivers import schemas as driver_schemas
 from pydantic import BaseModel, Field
 
 
@@ -47,6 +47,7 @@ class VehicleProfile(BaseModel):
     capacity: int
     driver_id: str
     location: Dict[str, float]
+    driver: driver_schemas.DriverProfile
 
     @classmethod
     def from_orm(cls, vehicle: "Vehicle"):
@@ -54,6 +55,7 @@ class VehicleProfile(BaseModel):
             license_number=vehicle.license_number,
             registration_number=vehicle.registration_number,
             capacity=vehicle.capacity,
+            driver=vehicle.driver.__dict__,
             driver_id=str(vehicle.driver_id),
             location=extract_coordinates(
                 vehicle.location

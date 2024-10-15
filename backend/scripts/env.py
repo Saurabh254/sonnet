@@ -8,6 +8,7 @@ from app.users.models import User
 from app.drivers.models import Driver
 
 from app.vehicle.models import Vehicle
+from app.drives.models import Drive
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

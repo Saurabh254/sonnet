@@ -21,6 +21,26 @@ async def _validate_user_id(
     return user_id
 
 
+async def get_optional_loggedin_user(
+    user_id: str = Cookie(None), db: AsyncSession = Depends(get_async_db)
+):
+    if user_id:
+        stmt = select(user_models.User).filter(user_models.User.id == user_id)
+        result = await db.execute(stmt)
+        return result.scalar_one_or_none()
+    return None
+
+
+async def get_optional_loggedin_driver(
+    driver_id: str = Cookie(None), db: AsyncSession = Depends(get_async_db)
+):
+    if driver_id:
+        stmt = select(user_models.User).filter(driver_models.Driver.id == driver_id)
+        result = await db.execute(stmt)
+        return result.scalar_one_or_none()
+    return None
+
+
 async def get_current_user(
     user_id: str = Depends(_validate_user_id),
     db: AsyncSession = Depends(get_async_db),

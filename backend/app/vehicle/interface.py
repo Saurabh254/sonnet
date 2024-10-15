@@ -5,7 +5,8 @@ from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from geoalchemy2.elements import WKTElement
 from app.drivers import models as driver_models
-
+from sqlalchemy import func
+from sqlalchemy.orm import joinedload
 from . import errors, models, schemas
 
 
@@ -85,7 +86,7 @@ async def update_vehicle(
     if vehicle_data.capacity is not None:
         vehicle.capacity = vehicle_data.capacity
     if vehicle_data.location:
-        vehicle.location = f'SRID=4326;POINT({vehicle_data.location["longitude"]} {vehicle_data.location["latitude"]})'
+        vehicle.location = f"SRID=4326;POINT({vehicle_data.location.longitude} {vehicle_data.location.latitude})"
 
     await db.commit()
     await db.refresh(vehicle)
@@ -128,11 +129,15 @@ async def get_vehicles_within_radius(
     reference_point = WKTElement(f"POINT({longitude} {latitude})", srid=4326)
 
     # Perform the query using ST_DWithin to get vehicles within the given radius
-    stmt = select(models.Vehicle).where(
-        func.ST_DWithin(
-            models.Vehicle.location,  # The location column in the Vehicle model
-            reference_point,  # The reference point (WKTElement)
-            radius_km * 1000,  # Convert radius to meters
+    stmt = (
+        select(models.Vehicle)
+        .options(joinedload(models.Vehicle.driver))
+        .where(
+            func.ST_DWithin(
+                models.Vehicle.location,  # The location column in the Vehicle model
+                reference_point,  # The reference point (WKTElement)
+                radius_km * 1000,  # Convert radius to meters
+            )
         )
     )
 
