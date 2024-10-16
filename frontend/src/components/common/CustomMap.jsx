@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { GoogleMap, useJsApiLoader, Marker, DirectionsService, DirectionsRenderer } from '@react-google-maps/api';
-import MarkerCar from './car_top_view.png';
-import { GOOGLE_MAPS_API_KEY } from '../config';
+import MarkerCar from '../../assets/car_top_view.png';
+import { GOOGLE_MAPS_API_KEY } from '../../config';
 
 const containerStyle = {
     width: '800px',

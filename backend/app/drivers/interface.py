@@ -1,16 +1,15 @@
 import json
-from pyexpat import model
-from typing import Any, Optional, Tuple, overload
+from typing import Any, Optional
 
 from fastapi import WebSocket
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth import auth, auth_bearer
 from app.exceptions import UnauthorisedUser
 from app.users import models as user_models
 from app.redis_client import _redis_client
 from app.vehicle import interface as vehicle_interface
+from app.auth import auth
 from . import errors, models, schemas, stream
 
 

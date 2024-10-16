@@ -1,8 +1,7 @@
-from typing import Any, overload
+from typing import Any
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Session
 
 from app.auth import auth
 from app.exceptions import UnauthorisedUser

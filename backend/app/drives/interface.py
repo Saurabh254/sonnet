@@ -155,14 +155,14 @@ gmaps = googlemaps.Client(key=config.GOOGLE_MAPS_API_KEY)
 
 
 def get_ride_details(pickup_lat, pickup_lng, dropoff_lat, dropoff_lng):
-    pickup_location = gmaps.reverse_geocode((pickup_lat, pickup_lng))[0][
+    pickup_location = gmaps.reverse_geocode((pickup_lat, pickup_lng))[0][  # type: ignore
         "formatted_address"
     ]
-    dropoff_location = gmaps.reverse_geocode((dropoff_lat, dropoff_lng))[0][
+    dropoff_location = gmaps.reverse_geocode((dropoff_lat, dropoff_lng))[0][  # type: ignore
         "formatted_address"
     ]
 
-    result = gmaps.distance_matrix(
+    result = gmaps.distance_matrix(  # type: ignore
         origins=f"{pickup_lat},{pickup_lng}",
         destinations=f"{dropoff_lat},{dropoff_lng}",
         mode="driving",

@@ -1,11 +1,10 @@
 import datetime
 
 from nanoid import generate
-from sqlalchemy import DateTime, Integer, String
+from sqlalchemy import DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from .db import \
-    Base  # Assuming you have a Base class defined in your db module
+from .db import Base  # Assuming you have a Base class defined in your db module
 
 
 class BaseModel(Base):

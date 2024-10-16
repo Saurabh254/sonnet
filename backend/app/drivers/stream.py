@@ -1,12 +1,10 @@
 import asyncio
-from fastapi import WebSocket
 import redis
 import redis.asyncio.client
 import redis.client
 
 
 from app.redis_client import _redis_client
-from app.drivers import models
 
 
 DRIVER_WEBSOCKET_TOPIC = "driver/location/{driver_id}"
