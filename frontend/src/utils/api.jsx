@@ -60,3 +60,50 @@ export const logout_user = async () => {
         throw error;
     }
 }
+
+export const get_my_vehicle = async () => {
+    try {
+        const response = await apiClient.get('/vehicles');
+        return {
+            data: response.data,
+            status: response.status,
+        };
+    } catch (error) {
+        console.error('Signup error:', error);
+        if (error.response) {
+            return {
+                data: error.response.data,
+                status: error.response.status,
+            };
+        } else {
+            return {
+                data: { message: 'An error occurred. Please try again later.' },
+                status: 500, // Internal server error
+            };
+        }
+    }
+}
+
+
+export const update_vehicle_data = async (vehicle_id, data) => {
+    try {
+        const response = await apiClient.put(`/vehicles/${vehicle_id}`, data);
+        return {
+            data: response.data,
+            status: response.status,
+        };
+    } catch (error) {
+        console.error('Signup error:', error);
+        if (error.response) {
+            return {
+                data: error.response.data,
+                status: error.response.status,
+            };
+        } else {
+            return {
+                data: { message: 'An error occurred. Please try again later.' },
+                status: 500, // Internal server error
+            };
+        }
+    }
+}

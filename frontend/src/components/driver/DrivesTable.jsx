@@ -24,7 +24,7 @@ const DrivesTable = ({ drives }) => (
                         <td>{drive.user.id}</td>
                         <td>{new Date(drive.createdAt).toLocaleString()}</td>
                         <td>{new Date(drive.updatedAt).toLocaleString()}</td>
-                        <td><a href={`/homepage/${drive.id}`} className='btn btn-neutral'> View</a></td>
+                        <td><a href={`/homepage/${drive.id}`} className='btn btn-neutral btn-sm'> View</a></td>
                     </tr>
                 ))}
             </tbody>
