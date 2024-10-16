@@ -1,56 +1,106 @@
-from typing import Any
+from datetime import datetime, timedelta
+from typing import Annotated, Any, Optional, Union
 
-import redis
-from fastapi import Cookie, Depends
-from sqlalchemy import select
+from fastapi import Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth import auth
+from app.auth.auth_bearer import JWTBearer
 from app.database.db import get_async_db
-from app.exceptions import InvalidSession, UnauthorisedUser
+from app.exceptions import UnauthorisedUser
 from app.users import models as user_models
-from app.utils.common import get_redis_conn_dep
-
+from jose import JWTError, jwt
 from app.drivers import models as driver_models
+from app.users import interface as user_interface
+from app.drivers import interface as driver_interface
+
+SECRET_KEY = "8cbfecba4cd7d500fdd63917cbe3ce517f0d72946d9e9f7f5e7820d74fb38082"
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_DAYS = 30
 
 
-async def _validate_user_id(
-    user_id: str = Cookie(None),
+def is_user(user: Union[user_models.User, driver_models.Driver]) -> bool:
+    return isinstance(user, user_models.User)
+
+
+def is_driver(user: Union[user_models.User, driver_models.Driver]) -> bool:
+    return isinstance(user, driver_models.Driver)
+
+
+def get_user_type(user: Union[user_models.User, driver_models.Driver]) -> str:
+    type = None
+    if isinstance(user, user_models.User):
+        type = "User"
+    elif isinstance(user, driver_models.Driver):
+        type = "Driver"
+
+    return type
+
+
+def create_access_token(
+    user: Union[user_models.User, driver_models.Driver],
+    expires_delta: Union[timedelta, None] = None,
 ) -> str:
+    to_encode = {"id": user.id, "role": get_user_type(user)}
 
-    return user_id
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(days=ACCESS_TOKEN_EXPIRE_DAYS)
+    to_encode.update({"exp": expire})  # type: ignore
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
 
 
 async def get_optional_loggedin_user(
-    user_id: str = Cookie(None), db: AsyncSession = Depends(get_async_db)
-):
+    token: Annotated[str, Depends(JWTBearer(auto_error=False))],
+    db: AsyncSession = Depends(get_async_db),
+) -> Union[user_models.User, driver_models.Driver, None]:
+    user_id = None  # type: ignore
+    role = None  # type: ignore
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id: str = payload.get("id")  # type: ignore
+        role: str = payload.get("role")  # type: ignore
+    except (JWTError, Exception):
+        pass
+    user = None
     if user_id:
-        stmt = select(user_models.User).filter(user_models.User.id == user_id)
-        result = await db.execute(stmt)
-        return result.scalar_one_or_none()
-    return None
+        if role == "User":
+            user = await user_interface.get_user(user_id=user_id, db=db)
+        elif role == "Driver":
+            user = await driver_interface.get_driver(driver_id=user_id, db=db)
+    return user
 
 
-async def get_optional_loggedin_driver(
-    driver_id: str = Cookie(None), db: AsyncSession = Depends(get_async_db)
-):
-    if driver_id:
-        stmt = select(user_models.User).filter(driver_models.Driver.id == driver_id)
-        result = await db.execute(stmt)
-        return result.scalar_one_or_none()
-    return None
+async def get_loggedin_user(
+    optional_user: Annotated[
+        Optional[Union[user_models.User, driver_models.Driver]],
+        Depends(get_optional_loggedin_user),
+    ]
+) -> Union[user_models.User, driver_models.Driver]:
+
+    if optional_user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    else:
+        return optional_user
 
 
 async def get_current_user(
-    user_id: str = Depends(_validate_user_id),
-    db: AsyncSession = Depends(get_async_db),
+    loggedin_user: Annotated[
+        user_models.User | driver_models.Driver | None, Depends(get_loggedin_user)
+    ],
 ) -> user_models.User:
-    stmt = select(user_models.User).filter(user_models.User.id == user_id)
-    result = await db.execute(stmt)
-    user = result.scalar_one_or_none()  # This will return the User
-    if user is None:
-        raise UnauthorisedUser
-    return user
+
+    if is_user(loggedin_user):
+        return loggedin_user
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized."
+        )
 
 
 async def get_current_active_user(
@@ -61,27 +111,14 @@ async def get_current_active_user(
     raise UnauthorisedUser(message="forbidden user")
 
 
-async def _validate_driver_id(
-    driver_id: str = Cookie(None),
-) -> str:
-    return driver_id
-
-
 async def get_current_driver(
-    driver_id: str = Depends(_validate_driver_id),
-    db: AsyncSession = Depends(get_async_db),
+    loggedin_user: Annotated[
+        user_models.User | driver_models.Driver | None, Depends(get_loggedin_user)
+    ],
 ) -> driver_models.Driver:
-    stmt = select(driver_models.Driver).filter(driver_models.Driver.id == driver_id)
-    result = await db.execute(stmt)
-    driver = result.scalar_one_or_none()  # This will return the Driver
-    if driver is None:
-        raise UnauthorisedUser
-    return driver
-
-
-# async def get_current_active_driver(
-#     driver: driver_models.Driver = Depends(get_current_driver),
-# ) -> driver_models.Driver:
-#     if driver.active:
-#         return driver
-#     raise UnauthorisedUser(message="forbidden driver")
+    if is_driver(loggedin_user):
+        return loggedin_user
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized."
+        )

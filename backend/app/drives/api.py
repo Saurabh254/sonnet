@@ -72,13 +72,12 @@ async def get_drive_endpoint(
 @router.get("", response_model=list[schemas.Drive])
 async def get_drives_endpoint(
     db: AsyncSession = Depends(get_async_db),
-    user: user_models.User = Depends(auth.get_optional_loggedin_user),
-    driver: driver_models.Driver = Depends(auth.get_optional_loggedin_driver),
+    user_or_driver: user_models.User | driver_models.Driver = Depends(
+        auth.get_loggedin_user
+    ),
 ):
-    if bool(user) ^ bool(driver):
-        if user:
-            return await interface.get_drives_by_driver(db, user)
-        else:
+    if auth.is_user(user_or_driver):
+        return await interface.get_drives_by_user(db, user_or_driver)
+    else:
 
-            return await interface.get_drives_by_driver(db, driver)
-    raise HTTPException(status_code=422)
+        return await interface.get_drives_by_driver(db, user_or_driver)

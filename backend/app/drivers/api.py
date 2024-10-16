@@ -12,19 +12,14 @@ router = APIRouter(tags=["Driver Authentication"], prefix="/drivers")
 @router.post(
     "/login",
     description="Log in the driver with a phone number and OTP to get an access token.",
-    response_model=schemas.DriverProfile,
+    response_model=schemas.LoginResponse,
 )
 async def login(
-    response: Response,
     phone: str = Body(..., description="Driver's phone number"),
     otp: str = Body(..., description="One-time password sent to the driver's phone"),
     db: AsyncSession = Depends(get_async_db),
 ):
-    driver = await interface.login_driver(phone, otp, db)
-    if not driver:
-        return driver
-    response.set_cookie("driver_id", str(driver.id))
-    return driver
+    return await interface.login_driver(phone, otp, db)
 
 
 @router.post(

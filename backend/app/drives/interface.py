@@ -1,3 +1,4 @@
+import googlemaps
 from operator import or_
 from typing import Sequence
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,6 +15,7 @@ from .schemas import (
 )  # Assuming you have Pydantic models in schemas.py
 from app.users import models as user_models
 from app.drivers import models as driver_models
+from app import config
 
 
 async def create_drive(
@@ -116,9 +118,93 @@ async def get_drive_by_id(
 
 
 async def get_drives_by_driver(
+    db: AsyncSession, driver: driver_models.Driver
+) -> Sequence[Drive]:
+    stmt = (
+        select(Drive)
+        .options(joinedload(Drive.user))
+        .where(Drive.driver_id == driver.id)
+        .order_by(Drive.created_at)
+    )
+    result = await db.execute(stmt)
+    drives = result.scalars().all()
+    return drives
+
+
+async def get_drives_by_user(
     db: AsyncSession, user: user_models.User
 ) -> Sequence[Drive]:
     stmt = select(Drive).where(Drive.user_id == user.id).order_by(Drive.created_at)
     result = await db.execute(stmt)
     drives = result.scalars().all()
     return drives
+
+
+# const rideDetails = {
+#         pickupLocation: '123 Main St, San Francisco, CA',
+#         dropoffLocation: '456 Oak St, Oakland, CA',
+#         distance: 12.4, // distance in kilometers
+#         estimatedTime: 18, // estimated time in minutes
+#         fare: 27.50, // fare in USD
+#         passengerName: 'Jane Doe',
+#         passengerContact: '+1 (555) 123-4567',
+#     };
+
+
+gmaps = googlemaps.Client(key=config.GOOGLE_MAPS_API_KEY)
+
+
+def get_ride_details(pickup_lat, pickup_lng, dropoff_lat, dropoff_lng):
+    pickup_location = gmaps.reverse_geocode((pickup_lat, pickup_lng))[0][
+        "formatted_address"
+    ]
+    dropoff_location = gmaps.reverse_geocode((dropoff_lat, dropoff_lng))[0][
+        "formatted_address"
+    ]
+
+    result = gmaps.distance_matrix(
+        origins=f"{pickup_lat},{pickup_lng}",
+        destinations=f"{dropoff_lat},{dropoff_lng}",
+        mode="driving",
+    )
+
+    distance = result["rows"][0]["elements"][0]["distance"]["value"] / 1000
+    duration = result["rows"][0]["elements"][0]["duration"]["value"] / 60
+
+    # Base fare remains the same
+    base_fare = 5.0
+
+    # Apply tiered pricing based on distance
+    if distance < 5:
+        per_km_rate = 5.0 * 1000  # Higher rate for short trips
+    elif 5 <= distance <= 15:
+        per_km_rate = 2.0  # Moderate rate for medium trips
+    else:
+        per_km_rate = 1.5  # Lower rate for long trips
+
+    fare = base_fare + (distance * per_km_rate)
+
+    passenger_name = "Jane Doe"
+    passenger_contact = "+1 (555) 123-4567"
+
+    ride_details = {
+        "pickupLocation": pickup_location,
+        "dropoffLocation": dropoff_location,
+        "distance": round(distance, 2),
+        "estimatedTime": round(duration),
+        "fare": round(fare, 2),
+        "passengerName": passenger_name,
+        "passengerContact": passenger_contact,
+    }
+
+    return ride_details
+
+
+# Example usage
+pickup_lat = 37.7749  # San Francisco latitude
+pickup_lng = -122.4194  # San Francisco longitude
+dropoff_lat = 37.8044  # Oakland latitude
+dropoff_lng = -122.2712  # Oakland longitude
+
+ride_details = get_ride_details(pickup_lat, pickup_lng, dropoff_lat, dropoff_lng)
+print(ride_details)

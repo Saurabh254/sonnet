@@ -1,14 +1,15 @@
-from typing import overload
+from typing import Any, overload
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth import auth, auth_bearer
 from app.exceptions import UnauthorisedUser
 
 from . import errors, models, schemas
 
 
-async def login_driver(phone: str, otp: str, db: AsyncSession) -> models.Driver:
+async def login_driver(phone: str, otp: str, db: AsyncSession) -> dict[str, Any]:
     if phone[-6:] != otp:
         raise UnauthorisedUser
     stmt = select(models.Driver).where(models.Driver.phone == phone)
@@ -17,8 +18,8 @@ async def login_driver(phone: str, otp: str, db: AsyncSession) -> models.Driver:
 
     if not driver:
         raise errors.DriverNotFound
-
-    return driver
+    access_token = auth.create_access_token(user=driver)
+    return {"access_token": access_token, "driver": driver.__dict__}
 
 
 async def signup_driver(

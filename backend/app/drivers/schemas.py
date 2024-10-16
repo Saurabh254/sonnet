@@ -19,3 +19,8 @@ class DriverProfile(DriverBase):
 
     class Config:
         orm_mode = True
+
+
+class LoginResponse(BaseModel):
+    access_token: str
+    driver: DriverProfile
