@@ -25,7 +25,7 @@ class RedisStream:
         self, topic: str, _redis: redis.asyncio.client.Redis
     ):
         # Create a PubSub object
-        pubsub: redis.client.PubSub = _redis.pubsub()
+        pubsub: redis.asyncio.client.PubSub = _redis.pubsub()
 
         # Subscribe to the topic (await since it's an async operation)
         await pubsub.subscribe(topic)

@@ -1,7 +1,7 @@
 from sqlalchemy import select
 
-from typing import Dict
-from sqlalchemy import delete, select, update
+from typing import Any, Dict, Sequence
+from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 from geoalchemy2.elements import WKTElement
 from app.drivers import models as driver_models
@@ -17,13 +17,13 @@ def wkb_to_dict(location) -> Dict[str, float]:
     """Convert WKBElement to a dict containing latitude and longitude."""
     if location is not None:
         point = to_shape(location)  # Convert to a shapely Point object
-        return {"latitude": point.y, "longitude": point.x}
-    return {"latitude": None, "longitude": None}
+        return {"latitude": point.y, "longitude": point.x}  # type: ignore
+    return {"latitude": None, "longitude": None}  # type: ignore
 
 
 async def register_vehicle(
     vehicle_data: schemas.VehicleCreate, driver: driver_models.Driver, db: AsyncSession
-) -> models.Vehicle:
+) -> dict[str, Any]:
     stmt = select(models.Vehicle).where(
         (models.Vehicle.registration_number == vehicle_data.registration_number)
         | (models.Vehicle.license_number == vehicle_data.license_number)
@@ -52,7 +52,7 @@ async def register_vehicle(
     return vehicle_dict  # Return the serialized dict
 
 
-async def get_vehicle(driver_id: str, db: AsyncSession) -> models.Vehicle:
+async def get_vehicle(driver_id: str, db: AsyncSession) -> dict[str, Any] | None:
     stmt = select(models.Vehicle).where(models.Vehicle.driver_id == driver_id)
     result = await db.execute(stmt)
     vehicle = result.scalar_one_or_none()
@@ -80,13 +80,13 @@ async def update_vehicle(
 
     # Update vehicle details
     if vehicle_data.license_number:
-        vehicle.license_number = vehicle_data.license_number
+        vehicle.license_number = vehicle_data.license_number  # type: ignore
     if vehicle_data.registration_number:
-        vehicle.registration_number = vehicle_data.registration_number
+        vehicle.registration_number = vehicle_data.registration_number  # type: ignore
     if vehicle_data.capacity is not None:
-        vehicle.capacity = vehicle_data.capacity
+        vehicle.capacity = vehicle_data.capacity  # type: ignore
     if vehicle_data.location:
-        vehicle.location = f"SRID=4326;POINT({vehicle_data.location.longitude} {vehicle_data.location.latitude})"
+        vehicle.location = f"SRID=4326;POINT({vehicle_data.location.longitude} {vehicle_data.location.latitude})"  # type: ignore
 
     await db.commit()
     await db.refresh(vehicle)
@@ -122,9 +122,22 @@ async def update_vehicle_location(
     return result.scalar_one_or_none()
 
 
+async def update_vehicle_location_by_driver_id(
+    driver_id: str, latitude: float, longitude: float, db: AsyncSession
+):
+    stmt = select(models.Vehicle).filter(models.Vehicle.driver_id == driver_id)
+    result = await db.execute(stmt)
+    vehicle = result.scalar_one()
+    if vehicle:
+        vehicle.location = f"SRID=4326;POINT({longitude} {latitude})"  # type: ignore
+        await db.commit()
+        await db.refresh(vehicle)
+    return vehicle
+
+
 async def get_vehicles_within_radius(
     db: AsyncSession, latitude: float, longitude: float, radius_km: float
-) -> list[models.Vehicle]:
+) -> Sequence[models.Vehicle]:
     # Create a POINT geometry from the provided latitude and longitude
     reference_point = WKTElement(f"POINT({longitude} {latitude})", srid=4326)
 

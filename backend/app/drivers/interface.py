@@ -1,6 +1,8 @@
+import json
 from pyexpat import model
-from typing import Any, Optional, overload
+from typing import Any, Optional, Tuple, overload
 
+from fastapi import WebSocket
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -8,6 +10,7 @@ from app.auth import auth, auth_bearer
 from app.exceptions import UnauthorisedUser
 from app.users import models as user_models
 from app.redis_client import _redis_client
+from app.vehicle import interface as vehicle_interface
 from . import errors, models, schemas, stream
 
 
@@ -67,3 +70,23 @@ async def get_driver_location(user: user_models.User, driver_id: str):
         topic=stream.DRIVER_WEBSOCKET_TOPIC.format(driver_id=driver_id),
         _redis=_redis_client,
     )
+
+
+def get_lat_and_long_from_websocket_data(data: str) -> tuple[float, float]:
+    parsed_data = json.loads(data)
+    return float(parsed_data.get("latitude")), float(parsed_data.get("longitude"))
+
+
+async def handle_websocket_location_updates(websocket: WebSocket, db: AsyncSession):
+    token = await websocket.receive_text()
+    driver = await get_driver_from_access_token(token, db)
+    if not driver:
+        raise
+    webstream = stream.RedisStream(driver_id=driver.id)
+    while True:
+        data = await websocket.receive_text()
+        await webstream.publish_driver_location_to_topic(data=data)
+        latitude, longitude = get_lat_and_long_from_websocket_data(data)
+        await vehicle_interface.update_vehicle_location_by_driver_id(
+            driver_id=driver.id, latitude=latitude, longitude=longitude, db=db
+        )

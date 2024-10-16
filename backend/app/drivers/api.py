@@ -2,19 +2,17 @@ from fastapi import (
     APIRouter,
     Body,
     Depends,
-    FastAPI,
     WebSocket,
     WebSocketException,
     status,
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 from sse_starlette import EventSourceResponse
-import uvicorn
 
 from app.auth import auth
 from app.database.db import get_async_db
 from app.users import models as user_models
-from . import interface, models, schemas, stream
+from . import interface, models, schemas
 
 router = APIRouter(tags=["Driver Authentication"], prefix="/drivers")
 
@@ -27,15 +25,7 @@ async def update_driver_location_ws_route(
 
     await websocket.accept()
     try:
-        token = await websocket.receive_text()
-        driver = await interface.get_driver_from_access_token(token, db)
-        if not driver:
-            raise
-        webstream = stream.RedisStream(driver_id=driver.id)
-
-        while True:
-            data = await websocket.receive_text()
-            await webstream.publish_driver_location_to_topic(data=data)
+        await interface.handle_websocket_location_updates(websocket, db)
     except Exception:
         raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION)
 
