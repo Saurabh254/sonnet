@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 
 from app import api as public_api
@@ -18,6 +18,7 @@ app = FastAPI(
         "url": "https://opensource.org/licenses/MIT",
     },
 )
+
 
 app.include_router(public_api.router)
 add_exception_handler(app)

@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Annotated, Any, Optional, Union
+from typing import Annotated, Any, Literal, Optional, Tuple, Union
 
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -49,6 +49,19 @@ def create_access_token(
     to_encode.update({"exp": expire})  # type: ignore
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
+
+
+def decrpt_access_token(token: str, role: Literal["User", "Driver"]) -> str:
+    user_id = None  # type: ignore
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id: str = payload.get("id")  # type: ignore
+        _role: str = payload.get("role")  # type: ignore
+        if _role != role:
+            raise
+    except (JWTError, Exception):
+        pass
+    return user_id
 
 
 async def get_optional_loggedin_user(

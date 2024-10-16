@@ -1,12 +1,55 @@
-from fastapi import APIRouter, Body, Depends, Response
+from fastapi import (
+    APIRouter,
+    Body,
+    Depends,
+    FastAPI,
+    WebSocket,
+    WebSocketException,
+    status,
+)
 from sqlalchemy.ext.asyncio import AsyncSession
+from sse_starlette import EventSourceResponse
+import uvicorn
 
 from app.auth import auth
 from app.database.db import get_async_db
-
-from . import interface, models, schemas
+from app.users import models as user_models
+from . import interface, models, schemas, stream
 
 router = APIRouter(tags=["Driver Authentication"], prefix="/drivers")
+
+
+@router.websocket("/location/ws")
+async def update_driver_location_ws_route(
+    websocket: WebSocket,
+    db: AsyncSession = Depends(get_async_db),
+):
+
+    await websocket.accept()
+    try:
+        token = await websocket.receive_text()
+        driver = await interface.get_driver_from_access_token(token, db)
+        if not driver:
+            raise
+        webstream = stream.RedisStream(driver_id=driver.id)
+
+        while True:
+            data = await websocket.receive_text()
+            await webstream.publish_driver_location_to_topic(data=data)
+    except Exception:
+        raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION)
+
+
+@router.get("/{driver_id}/location")
+async def get_driver_location(
+    driver_id: str,
+    current_user: user_models.User = Depends(auth.get_current_active_user),
+):
+
+    generator = await interface.get_driver_location(
+        driver_id=driver_id, user=current_user
+    )
+    return EventSourceResponse(content=generator)
 
 
 @router.post(
@@ -36,12 +79,12 @@ async def signup(
 @router.post(
     "/logout",
     description="Logs out the currently authenticated driver and invalidates the session.",
-    response_model=schemas.DriverProfile,
+    status_code=204,
 )
 async def logout(
     current_driver: models.Driver = Depends(auth.get_current_driver),
 ):
-    return await interface.logout_driver(current_driver)
+    await interface.logout_driver(current_driver)
 
 
 @router.get(

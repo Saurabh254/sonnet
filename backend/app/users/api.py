@@ -12,19 +12,14 @@ router = APIRouter(tags=["User Authentication"], prefix="/users")
 @router.post(
     "/login",
     description="Log in the user with a phone number and OTP to get an access token.",
-    response_model=schemas.UserProfile,
+    response_model=schemas.LoginResponse,
 )
 async def login(
-    response: Response,
     phone: str = Body(..., description="User's phone number"),
     otp: str = Body(..., description="One-time password sent to the user's phone"),
     db: AsyncSession = Depends(get_async_db),
 ):
-    user = await interface.login_user(phone, otp, db)
-    if not user:
-        return user
-    response.set_cookie("user_id", str(user.id))
-    return user
+    return await interface.login_user(phone, otp, db)
 
 
 @router.post(

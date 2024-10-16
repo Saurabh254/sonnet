@@ -24,3 +24,6 @@ def get_postgres_dsn(driver: Literal["asyncpg", "psycopg2"]) -> str:
             path=POSTGRES_DATABASE,
         )
     )
+
+
+GOOGLE_MAPS_API_KEY = "API_KEY"

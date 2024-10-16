@@ -1,15 +1,16 @@
-from typing import overload
+from typing import Any, overload
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
+from app.auth import auth
 from app.exceptions import UnauthorisedUser
 
 from . import errors, models, schemas
 
 
-async def login_user(phone: str, otp: str, db: AsyncSession) -> models.User:
+async def login_user(phone: str, otp: str, db: AsyncSession) -> dict[str, Any]:
     if phone[-6:] != otp:
         raise UnauthorisedUser
     stmt = select(models.User).where(models.User.phone == phone)
@@ -22,7 +23,11 @@ async def login_user(phone: str, otp: str, db: AsyncSession) -> models.User:
     if not user.active:
         raise UnauthorisedUser
 
-    return user
+    access_token = auth.create_access_token(user=user)
+    return {
+        "access_token": access_token,
+        "user": user.__dict__,
+    }
 
 
 async def signup_user(user_data: schemas.UserCreate, db: AsyncSession) -> models.User:

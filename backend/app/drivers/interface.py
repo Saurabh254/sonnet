@@ -1,12 +1,14 @@
-from typing import Any, overload
+from pyexpat import model
+from typing import Any, Optional, overload
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import auth, auth_bearer
 from app.exceptions import UnauthorisedUser
-
-from . import errors, models, schemas
+from app.users import models as user_models
+from app.redis_client import _redis_client
+from . import errors, models, schemas, stream
 
 
 async def login_driver(phone: str, otp: str, db: AsyncSession) -> dict[str, Any]:
@@ -50,3 +52,18 @@ async def get_driver(driver_id: str, db: AsyncSession) -> models.Driver:
     stmt = select(models.Driver).filter(models.Driver.id == driver_id)
     result = await db.execute(stmt)
     return result.scalar_one_or_none()
+
+
+async def get_driver_from_access_token(
+    token: str, db: AsyncSession
+) -> Optional[models.Driver]:
+    driver_id = auth.decrpt_access_token(token=token, role="Driver")
+    return await get_driver(driver_id=driver_id, db=db)
+
+
+async def get_driver_location(user: user_models.User, driver_id: str):
+    webstream = stream.RedisStream(driver_id=driver_id)
+    return webstream.get_published_messages(
+        topic=stream.DRIVER_WEBSOCKET_TOPIC.format(driver_id=driver_id),
+        _redis=_redis_client,
+    )

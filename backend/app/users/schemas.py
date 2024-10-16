@@ -19,3 +19,8 @@ class UserProfile(UserBase):
 
     class Config:
         orm_mode = True  # Allows Pydantic to read data from ORM models
+
+
+class LoginResponse(BaseModel):
+    access_token: str
+    user: UserProfile
