@@ -53,7 +53,11 @@ async def register_vehicle(
 
 
 async def get_vehicle(driver_id: str, db: AsyncSession) -> dict[str, Any] | None:
-    stmt = select(models.Vehicle).where(models.Vehicle.driver_id == driver_id)
+    stmt = (
+        select(models.Vehicle)
+        .options(joinedload(models.Vehicle.driver))
+        .where(models.Vehicle.driver_id == driver_id)
+    )
     result = await db.execute(stmt)
     vehicle = result.scalar_one_or_none()
 
@@ -74,10 +78,10 @@ async def update_vehicle(
     stmt = select(models.Vehicle).where(models.Vehicle.id == vehicle_id)
     result = await db.execute(stmt)
     vehicle = result.scalar_one_or_none()
-
+    print(vehicle)
     if not vehicle:
         raise errors.VehicleNotFound
-
+    print(vehicle_data.model_dump())
     # Update vehicle details
     if vehicle_data.license_number:
         vehicle.license_number = vehicle_data.license_number  # type: ignore
@@ -85,12 +89,8 @@ async def update_vehicle(
         vehicle.registration_number = vehicle_data.registration_number  # type: ignore
     if vehicle_data.capacity is not None:
         vehicle.capacity = vehicle_data.capacity  # type: ignore
-    if vehicle_data.location:
-        vehicle.location = f"SRID=4326;POINT({vehicle_data.location.longitude} {vehicle_data.location.latitude})"  # type: ignore
 
     await db.commit()
-    await db.refresh(vehicle)
-    return vehicle
 
 
 async def delete_vehicle(vehicle_id: str, db: AsyncSession) -> None:

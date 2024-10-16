@@ -57,11 +57,11 @@ async def get_nearby_vehicles(
 @router.put(
     "/{vehicle_id}",
     description="Update vehicle details by its ID.",
-    response_model=schemas.VehicleProfile,
+    status_code=204,
 )
 async def update_vehicle(
     vehicle_id: str,
     vehicle_data: schemas.VehicleUpdate,
     db: AsyncSession = Depends(get_async_db),
 ):
-    return await interface.update_vehicle(vehicle_id, vehicle_data, db)
+    await interface.update_vehicle(vehicle_id, vehicle_data, db)

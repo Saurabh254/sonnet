@@ -14,20 +14,13 @@ class VehicleBase(BaseModel):
     capacity: int
 
 
-class Location(BaseModel):
-    latitude: float
-    longitude: float
-
-
-class VehicleCreate(VehicleBase):
-    location: Location
+class VehicleCreate(VehicleBase): ...
 
 
 class VehicleUpdate(BaseModel):
     license_number: Optional[str] = None
     registration_number: Optional[str] = None
     capacity: Optional[int] = None
-    location: Location
 
 
 # Helper function to convert location data to lat/lng
@@ -42,6 +35,7 @@ def extract_coordinates(location: WKBElement) -> Dict[str, float]:
 
 
 class VehicleProfile(BaseModel):
+    id: str
     license_number: str
     registration_number: str
     capacity: int
@@ -52,6 +46,7 @@ class VehicleProfile(BaseModel):
     @classmethod
     def from_orm(cls, vehicle: "Vehicle"):
         return cls(
+            id=vehicle.id,
             license_number=vehicle.license_number,
             registration_number=vehicle.registration_number,
             capacity=vehicle.capacity,
