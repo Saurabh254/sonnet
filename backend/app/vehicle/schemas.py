@@ -34,13 +34,16 @@ def extract_coordinates(location: WKBElement) -> Dict[str, float]:
     return {"latitude": None, "longitude": None}
 
 
-class VehicleProfile(BaseModel):
+class SlimVehicleProfile(BaseModel):
     id: str
     license_number: str
     registration_number: str
     capacity: int
     driver_id: str
     location: Dict[str, float]
+
+
+class VehicleProfile(SlimVehicleProfile):
     driver: driver_schemas.DriverProfile
 
     @classmethod

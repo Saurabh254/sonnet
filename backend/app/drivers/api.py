@@ -1,8 +1,11 @@
+import json
 from fastapi import (
     APIRouter,
     Body,
     Depends,
+    HTTPException,
     WebSocket,
+    WebSocketDisconnect,
     WebSocketException,
     status,
 )
@@ -17,28 +20,55 @@ from . import interface, models, schemas
 router = APIRouter(tags=["Driver Authentication"], prefix="/drivers")
 
 
-@router.websocket("/location/ws")
-async def update_driver_location_ws_route(
-    websocket: WebSocket,
+# @router.websocket("/location/ws")
+# async def update_driver_location_ws_route(
+#     websocket: WebSocket,
+#     db: AsyncSession = Depends(get_async_db),
+# ):
+
+
+#     await websocket.accept()
+#     try:
+#     except Exception:
+#         raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION)
+active_connections: dict[str, WebSocket] = {}
+
+
+@router.websocket("/ws/{user_id}")
+async def websocket_endpoint(
+    websocket: WebSocket, user_id: str, db: AsyncSession = Depends(get_async_db)
+):
+    await websocket.accept()
+    token = await websocket.receive_text()
+    user = await auth.get_user_from_access_token(token=token, db=db)
+    if user and user.id != user_id:
+        await websocket.close()
+    active_connections[user_id] = websocket
+    try:
+        while True:
+            data = await websocket.receive_text()
+            message_data = json.loads(data)
+            recipient = message_data.get("recipient")
+            recipient_websocket = active_connections.get(recipient)
+            if recipient_websocket:
+                await recipient_websocket.send_text(message_data["data"])
+            else:
+                await websocket.send_text(f"Recipient {recipient} is not connected.")
+
+    except WebSocketDisconnect:
+        del active_connections[user_id]
+
+
+@router.get("/new_ride")
+async def get_new_ride_event(
+    token: str,
     db: AsyncSession = Depends(get_async_db),
 ):
-
-    await websocket.accept()
-    try:
-        await interface.handle_websocket_location_updates(websocket, db)
-    except Exception:
-        raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION)
-
-
-@router.get("/{driver_id}/location")
-async def get_driver_location(
-    driver_id: str,
-    current_user: user_models.User = Depends(auth.get_current_active_user),
-):
-
-    generator = await interface.get_driver_location(
-        driver_id=driver_id, user=current_user
-    )
+    driver = await auth.get_user_from_access_token(token=token, db=db)
+    if not auth.is_driver(driver):
+        raise HTTPException(status_code=401)
+    print("okkk")
+    generator = await interface.new_ride_popup_listener(driver=driver, db=db)
     return EventSourceResponse(content=generator)
 
 

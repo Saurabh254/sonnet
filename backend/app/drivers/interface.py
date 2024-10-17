@@ -84,8 +84,17 @@ async def handle_websocket_location_updates(websocket: WebSocket, db: AsyncSessi
     webstream = stream.RedisStream(driver_id=driver.id)
     while True:
         data = await websocket.receive_text()
-        await webstream.publish_driver_location_to_topic(data=data)
+        topic = stream.DRIVER_WEBSOCKET_TOPIC.format(driver_id=driver.id)
+        await webstream.publish_data_to_topic(topic=topic, data=data)
         latitude, longitude = get_lat_and_long_from_websocket_data(data)
         await vehicle_interface.update_vehicle_location_by_driver_id(
             driver_id=driver.id, latitude=latitude, longitude=longitude, db=db
         )
+
+
+async def new_ride_popup_listener(driver: models.Driver, db: AsyncSession):
+    webstream = stream.RedisStream(driver_id=driver.id)
+    return webstream.get_published_messages(
+        topic=stream.DRIVER_EVENTSOURCE_ENDPOINT.format(driver_id=driver.id),
+        _redis=_redis_client,
+    )

@@ -135,3 +135,23 @@ async def get_current_driver(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized."
         )
+
+
+async def get_user_from_access_token(
+    token: str, db: AsyncSession
+) -> user_models.User | driver_models.Driver:
+    user_id = None
+    role = None  # type: ignore
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id: str = payload.get("id")  # type: ignore
+        role: str = payload.get("role")  # type: ignore
+
+    except (JWTError, Exception):
+        pass
+    if role == "Driver":
+        return await driver_interface.get_driver(driver_id=user_id, db=db)
+    elif role == "User":
+        return await user_interface.get_user(user_id=user_id, db=db)
+    else:
+        raise

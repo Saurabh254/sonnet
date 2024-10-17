@@ -1,8 +1,11 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { login_user } from "../../utils/api";
+import { login_driver, login_user } from "../../utils/api";
 import { ACCESS_TOKEN_STORAGE_KEY } from "../../config";
+
 const LoginPage = () => {
     const navigate = useNavigate();
+    const [role, setRole] = useState('user'); // State to track selected role
 
     const handleForm = async (e) => {
         e.preventDefault(); // Prevent the default form submission behavior
@@ -11,13 +14,21 @@ const LoginPage = () => {
         const otp = e.target.otp.value; // Get the OTP from the input
 
         try {
-            const response_data = await login_user(phone, otp);
-            localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, response_data.accessToken)
-            navigate('/homepage');
+
+            // Navigate based on the selected role
+            if (role === 'user') {
+                const response_data = await login_user(phone, otp);
+                navigate('/user/homepage');
+                localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, response_data.accessToken);
+            } else if (role === 'driver') {
+                navigate('/driver/homepage');
+                const response_data = await login_driver(phone, otp);
+                localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, response_data.accessToken);
+            }
         } catch (error) {
             console.error("Login failed:", error);
         }
-    }
+    };
 
     return (
         <>
@@ -64,6 +75,24 @@ const LoginPage = () => {
                                     autoComplete="one-time-code"
                                     className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                                 />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label htmlFor="role" className="block text-sm font-medium leading-6 text-gray-900">
+                                Select Role
+                            </label>
+                            <div className="mt-2">
+                                <select
+                                    id="role"
+                                    name="role"
+                                    value={role}
+                                    onChange={(e) => setRole(e.target.value)}
+                                    className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                                >
+                                    <option value="user">User</option>
+                                    <option value="driver">Driver</option>
+                                </select>
                             </div>
                         </div>
 

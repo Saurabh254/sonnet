@@ -5,6 +5,7 @@ import {
   DialogTitle,
 } from "@headlessui/react";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
+import React from "react";
 
 const RideRequestDialog = ({ open, onAccept, onDecline, rideDetails }) => {
   const {
@@ -50,11 +51,17 @@ const RideRequestDialog = ({ open, onAccept, onDecline, rideDetails }) => {
                 </div>
               </div>
             </div>
-            <div className="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
-              <button onClick={onAccept} className="btn btn-green">
+            <div className="bg-white px-4 py-3 sm:flex sm:flex-row-reverse gap-6 sm:px-6">
+              <button
+                onClick={onAccept}
+                className="btn  bg-green-500 hover:bg-green-600 text-white font-semibold"
+              >
                 Accept
               </button>
-              <button onClick={onDecline} className="btn btn-red">
+              <button
+                onClick={onDecline}
+                className="btn  bg-red-500 hover:bg-red-600 text-white font-semibold"
+              >
                 Reject
               </button>
             </div>
@@ -74,7 +81,7 @@ const RideDetails = ({
   passengerName,
   passengerContact,
 }) => (
-  <table className="w-full text-left mb-4">
+  <table className="w-full text-left mb-4 mt-8">
     <tbody>
       <InfoRow label="Pickup Location:" value={pickupLocation} />
       <InfoRow label="Drop-off Location:" value={dropoffLocation} />

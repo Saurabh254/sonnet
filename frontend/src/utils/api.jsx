@@ -11,11 +11,22 @@ export const getRides = async () => {
 }
 
 
-export const login_user = async (phone, otp) => {
+export const login_driver = async (phone, otp) => {
 
     try {
         const data = { 'phone': phone, 'otp': otp }
         const response = await apiClient.post('/drivers/login', data); // Make a GET request to /drives
+        return response.data; // Return the data from the response
+    } catch (error) {
+        console.error("Error fetching rides:", error);
+        throw error; // Rethrow the error for further handling
+    }
+}
+export const login_user = async (phone, otp) => {
+
+    try {
+        const data = { 'phone': phone, 'otp': otp }
+        const response = await apiClient.post('/users/login', data); // Make a GET request to /drives
         return response.data; // Return the data from the response
     } catch (error) {
         console.error("Error fetching rides:", error);
@@ -88,6 +99,53 @@ export const get_my_vehicle = async () => {
 export const update_vehicle_data = async (vehicle_id, data) => {
     try {
         const response = await apiClient.put(`/vehicles/${vehicle_id}`, data);
+        return {
+            status: response.status,
+        };
+    } catch (error) {
+        console.error('Signup error:', error);
+        if (error.response) {
+            return {
+                data: error.response.data,
+                status: error.response.status,
+            };
+        } else {
+            return {
+                data: { message: 'An error occurred. Please try again later.' },
+                status: 500, // Internal server error
+            };
+        }
+    }
+}
+
+export const get_nearby_vehicle = async (lat, long, radius) => {
+    try {
+        const response = await apiClient.get(`/vehicles/nearby?latitude=${lat}&longitude=${long}&radius_km=${radius}`);
+        return {
+            data: response.data,
+            status: response.status,
+        };
+    } catch (error) {
+        console.error('Signup error:', error);
+        if (error.response) {
+            return {
+                data: error.response.data,
+                status: error.response.status,
+            };
+        } else {
+            return {
+                data: { message: 'An error occurred. Please try again later.' },
+                status: 500, // Internal server error
+            };
+        }
+    }
+}
+
+
+
+export const create_drive = async (data) => {
+    try {
+        const response = await apiClient.post('/drives', data);
         return {
             data: response.data,
             status: response.status,

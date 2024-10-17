@@ -4,25 +4,22 @@ import MarkerCar from '../../assets/car_top_view.png';
 import { GOOGLE_MAPS_API_KEY } from '../../config';
 
 const containerStyle = {
-    width: '800px',
+    width: '600px',
     height: '600px',
-};
-
-const center = {
-    lat: 70.745,
-    lng: 90.523,
-};
-
-// Two marker positions
-const markerA = {
-    lat: 21.745,
-    lng: 70.523,
 };
 
 function CustomMap() {
     const [location, setLocation] = useState({ lat: null, lng: null });
     const [error, setError] = useState(null);
     const [directionsResponse, setDirectionsResponse] = useState(null);
+
+
+    // Two marker positions
+    const markerA = {
+        lat: 21.745,
+        lng: 70.523,
+    };
+    const center = { ...markerA }
 
     useEffect(() => {
         const getLocation = () => {

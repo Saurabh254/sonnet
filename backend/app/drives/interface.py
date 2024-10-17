@@ -5,10 +5,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload
+
+from app.auth import auth
+import random
+from app.vehicle.interface import wkb_to_dict
 from .models import (
     Drive,
     DriveStatus,
 )  # Adjust the import according to your project structure
+from geoalchemy2.shape import to_shape
 from .schemas import (
     DriveCreate,
     DriveUpdate,
@@ -16,6 +21,7 @@ from .schemas import (
 from app.users import models as user_models
 from app.drivers import models as driver_models
 from app import config
+from app.drivers import stream as driver_stream
 
 
 async def create_drive(
@@ -25,13 +31,51 @@ async def create_drive(
         **{
             **drive_create.model_dump(exclude={"user_id", "location"}),
             "user_id": user.id,
-            "location": f"SRID=4326;POINT({drive_create.location.longitude} {drive_create.location.latitude})",
+            "pickup_location": f"SRID=4326;POINT({drive_create.pickup_location.longitude} {drive_create.pickup_location.latitude})",
+            "dropoff_location": f"SRID=4326;POINT({drive_create.dropoff_location.longitude} {drive_create.dropoff_location.latitude})",
         }
     )
     db.add(new_drive)
     await db.commit()
-    await db.refresh(new_drive)
-    return new_drive
+
+
+def calculate_distance(pickup, dropoff):
+    # Implement your logic to calculate distance
+    return round(random.uniform(1.0, 50.0), 2)
+
+
+def calculate_estimated_time(distance):
+    # Implement your logic for estimating time based on distance
+    return round(distance / random.uniform(30, 60) * 60)
+
+
+def calculate_fare(distance):
+    # Implement your logic for calculating fare
+    return round(distance * random.uniform(1.5, 3.5), 2)
+
+
+async def stream_sse_to_driver(new_drive: Drive, user: user_models.User):
+
+    distance = calculate_distance(new_drive.pickup_location, new_drive.dropoff_location)
+    estimated_time = calculate_estimated_time(
+        distance
+    )  # You might define this function
+    fare = calculate_fare(distance)  # You might define this function
+
+    passenger_name = user.name  # Assuming the User model has a name attribute
+    passenger_contact = user.contact  # Assuming the User model has a contact attribute
+
+    # Prepare data to send as an event
+    data = {
+        "pickupLocation": to_shape(new_drive.pickup_location),
+        "dropoffLocation": to_shape(new_drive.dropoff_location),
+        "distance": distance,
+        "estimatedTime": estimated_time,
+        "fare": fare,
+        "passengerName": passenger_name,
+        "passengerContact": passenger_contact,
+    }
+    await create_new_ride_notification(driver_id=new_drive.driver_id, data=data)
 
 
 async def update_drive(
@@ -47,7 +91,7 @@ async def update_drive(
         raise HTTPException(status_code=404, detail="Drive not found")
 
     for key, value in drive_update.dict().items():
-        if key == "location":
+        if key == "dropoff_location" or key == "pickup_location":
             setattr(
                 drive,
                 key,
@@ -102,19 +146,52 @@ async def reject_drive(
 
 
 async def get_drive_by_id(
-    db: AsyncSession, drive_id: str, user_id: str, driver_id: str
-) -> Drive:
+    db: AsyncSession, drive_id: str, user: user_models.User | driver_models.Driver
+) -> dict | None:
     stmt = (
         select(Drive)
-        .options(joinedload(Drive.user))
+        .options(
+            joinedload(Drive.user), joinedload(Drive.driver), joinedload(Drive.vehicle)
+        )
         .where(Drive.id == drive_id)
-        .where(or_(Drive.user_id == user_id, Drive.driver_id == driver_id))
+        .where(or_(Drive.user_id == user.id, Drive.driver_id == user.id))
     )
     result = await db.execute(stmt)
     drive = result.scalar_one_or_none()
-    if drive is None:
-        raise HTTPException(status_code=404, detail="Drive not found")
-    return drive
+
+    if not drive:
+        return None
+    # Convert pickup and dropoff locations to dictionaries
+    pickup_location = to_shape(drive.pickup_location)  # type: ignore
+    dropoff_location = to_shape(drive.dropoff_location)  # type: ignore
+    if drive.vehicle:
+        # Convert the location to a dictionary
+        vehicle_dict = (
+            drive.vehicle.__dict__.copy()
+        )  # Copy the vehicle's attributes to a dict
+        vehicle_dict["location"] = wkb_to_dict(
+            drive.vehicle.location
+        )  # Convert the location
+    drive_data = {
+        "id": drive.id,
+        "driver_id": drive.driver_id,
+        "pickup_location": {
+            "latitude": pickup_location.y,
+            "longitude": pickup_location.x,
+        },
+        "dropoff_location": {
+            "latitude": dropoff_location.y,
+            "longitude": dropoff_location.x,
+        },
+        "status": drive.status,  # Assuming status is an enum
+        "user": drive.user,  # You can include user details here
+        "driver": drive.driver,  # You can include user details here
+        "created_at": drive.created_at,
+        "updated_at": drive.updated_at,
+        "vehicle": vehicle_dict,
+    }
+
+    return drive_data
 
 
 async def get_drives_by_driver(
@@ -122,7 +199,9 @@ async def get_drives_by_driver(
 ) -> Sequence[Drive]:
     stmt = (
         select(Drive)
-        .options(joinedload(Drive.user))
+        .options(
+            joinedload(Drive.user),
+        )
         .where(Drive.driver_id == driver.id)
         .order_by(Drive.created_at)
     )
@@ -200,11 +279,7 @@ def get_ride_details(pickup_lat, pickup_lng, dropoff_lat, dropoff_lng):
     return ride_details
 
 
-# Example usage
-pickup_lat = 37.7749  # San Francisco latitude
-pickup_lng = -122.4194  # San Francisco longitude
-dropoff_lat = 37.8044  # Oakland latitude
-dropoff_lng = -122.2712  # Oakland longitude
-
-ride_details = get_ride_details(pickup_lat, pickup_lng, dropoff_lat, dropoff_lng)
-print(ride_details)
+async def create_new_ride_notification(driver_id: str, data):
+    webstream = driver_stream.RedisStream(driver_id=driver_id)
+    topic = driver_stream.DRIVER_EVENTSOURCE_ENDPOINT.format(driver_id)
+    await webstream.publish_data_to_topic(topic, data)

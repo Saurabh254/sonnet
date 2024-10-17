@@ -1,25 +1,26 @@
 import { useEffect, useState } from 'react';
 import DrivesTable from './DrivesTable';
 import { getRides } from '../../utils/api';
-import Header from '../common/Header';
-import VehicleDialog from './AddOrUpdateVehicle';
+import { DriverHeader } from '../common/Header';
+import VehicleDialog from './UpdateVehicle';
+import UserInfo from './UserInfo';
+import { Routes, Route } from 'react-router-dom';
 
-export const DriverHomePage = () => {
-    const [drives, setDrives] = useState(null);
+const DriverHomePage = () => {
     const [showVehicleDialog, setShowVehicleDialog] = useState(false);
-    useEffect(() => {
-        async function fetchData() {
-            const _drives = await getRides();
-            setDrives(_drives);
-        }
-        fetchData();
-    }, []);
-    console.log(showVehicleDialog)
+
     return (
         <>
-            {showVehicleDialog ? <VehicleDialog setShowVehicleDialog={setShowVehicleDialog} /> : <div></div>}
-            <Header showVehicleDialog={showVehicleDialog} setShowVehicleDialog={setShowVehicleDialog} />
-            {drives ? <DrivesTable drives={drives} /> : <div>Not found</div>}
+            {showVehicleDialog && <VehicleDialog setShowVehicleDialog={setShowVehicleDialog} />}
+            <DriverHeader showVehicleDialog={showVehicleDialog} setShowVehicleDialog={setShowVehicleDialog} />
+
+            <Routes>
+                <Route path='' element={<DrivesTable />} />
+                <Route path=':driver_id' element={<UserInfo />} />
+            </Routes>
         </>
+
     );
 };
+
+export default DriverHomePage;

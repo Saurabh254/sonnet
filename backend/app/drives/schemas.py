@@ -3,7 +3,9 @@ from datetime import datetime
 from enum import Enum
 from typing import Optional
 
+from app.drivers.schemas import DriverProfile
 from app.users.schemas import UserProfile
+from app.vehicle.schemas import SlimVehicleProfile, VehicleProfile
 
 
 class DriveStatus(str, Enum):
@@ -14,7 +16,9 @@ class DriveStatus(str, Enum):
 
 class DriveCreate(BaseModel):
     driver_id: str
-    location: "Location"
+    vehicle_id: str
+    pickup_location: "Location"  # You can define a more specific type if needed
+    dropoff_location: "Location"  # Y
 
 
 class Location(BaseModel):
@@ -24,7 +28,8 @@ class Location(BaseModel):
 
 class DriveUpdate(BaseModel):
     driver_id: Optional[str]
-    location: Location  # You can define a more specific type if needed
+    pickup_location: Location  # You can define a more specific type if needed
+    dropoff_location: Location  # You can define a more specific type if needed
     status: Optional[DriveStatus]  # Status can also be updated
 
 
@@ -35,13 +40,27 @@ class Driver(BaseModel):
     updated_at: datetime
 
 
+class SlimDrive(BaseModel):
+    status: DriveStatus
+    driver_id: str
+    id: str
+    user: UserProfile | None = None
+    driver: DriverProfile | None = None
+    created_at: datetime
+    updated_at: datetime
+
+
 class Drive(BaseModel):
     status: DriveStatus
     driver_id: str
     id: str
-    user: UserProfile
+    user: UserProfile | None = None
+    driver: DriverProfile | None = None
+    pickup_location: Location | None = None
+    dropoff_location: Location | None = None
     created_at: datetime
     updated_at: datetime
+    vehicle: SlimVehicleProfile | None = None
 
     class Config:
         orm_mode = True  # Enables compatibility with SQLAlchemy models

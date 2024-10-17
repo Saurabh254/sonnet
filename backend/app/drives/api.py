@@ -10,13 +10,13 @@ from app.drivers import models as driver_models
 router = APIRouter(prefix="/drives", tags=["drives"])
 
 
-@router.post("", response_model=schemas.Drive)
+@router.post("", status_code=204)
 async def create_drive_endpoint(
     drive: schemas.DriveCreate,
     db: AsyncSession = Depends(get_async_db),
     user: user_models.User = Depends(auth.get_current_active_user),
 ):
-    return await interface.create_drive(user, db, drive)
+    await interface.create_drive(user, db, drive)
 
 
 @router.put("/{drive_id}", response_model=schemas.DriveUpdate)
@@ -60,16 +60,14 @@ async def reject_drive_endpoint(
 async def get_drive_endpoint(
     drive_id: str,
     db: AsyncSession = Depends(get_async_db),
-    user_id: str = Cookie(None),
-    driver_id: str = Cookie(None),
+    user_or_driver: user_models.User | driver_models.Driver = Depends(
+        auth.get_loggedin_user
+    ),
 ):
-    if bool(user_id) ^ bool(driver_id):
-        return await interface.get_drive_by_id(db, drive_id, user_id, driver_id)
-    print(user_id, drive_id)
-    raise HTTPException(status_code=422)
+    return await interface.get_drive_by_id(db, drive_id, user=user_or_driver)
 
 
-@router.get("", response_model=list[schemas.Drive])
+@router.get("", response_model=list[schemas.SlimDrive])
 async def get_drives_endpoint(
     db: AsyncSession = Depends(get_async_db),
     user_or_driver: user_models.User | driver_models.Driver = Depends(

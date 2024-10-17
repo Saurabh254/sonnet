@@ -202,7 +202,7 @@ const UpdateVehicleComponent = ({ vehicle, setShowVehicleDialog }) => {
     );
 };
 
-const AddVehicleComponent = ({ setShowVehicleDialog }) => {
+export const AddVehicleComponent = ({ setShowVehicleDialog }) => {
     const [open, setOpen] = useState(true);
 
     const onDecline = () => setOpen(false);

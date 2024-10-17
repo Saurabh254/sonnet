@@ -1,4 +1,5 @@
 import asyncio
+from fastapi import HTTPException
 import redis
 import redis.asyncio.client
 import redis.client
@@ -8,6 +9,7 @@ from app.redis_client import _redis_client
 
 
 DRIVER_WEBSOCKET_TOPIC = "driver/location/{driver_id}"
+DRIVER_EVENTSOURCE_ENDPOINT = "driver/{driver_id}/new-ride"
 
 
 class RedisStream:
@@ -15,8 +17,7 @@ class RedisStream:
     def __init__(self, driver_id: str) -> None:
         self.driver_id = driver_id
 
-    async def publish_driver_location_to_topic(self, data):
-        topic = DRIVER_WEBSOCKET_TOPIC.format(driver_id=self.driver_id)
+    async def publish_data_to_topic(self, topic, data):
         await _redis_client.publish(topic, data)
 
     async def get_published_messages(
@@ -38,6 +39,7 @@ class RedisStream:
         except asyncio.CancelledError:
             # Handle task cancellation if necessary
             print("Listener task was cancelled.")
+            raise HTTPException(status_code=403)
         finally:
             # Unsubscribe and close PubSub
             await pubsub.unsubscribe(topic)

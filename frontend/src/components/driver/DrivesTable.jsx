@@ -1,7 +1,16 @@
+import { useEffect, useState } from "react";
+import { getRides } from "../../utils/api";
+import { useNavigate } from "react-router-dom";
 
-const DrivesTable = ({ drives }) => (
-    <div className="overflow-x-auto px-24">
-        <table className="table w-full">
+const Table = ({ drives }) => {
+    const navigate = useNavigate();
+    function handleViewButton(drive_id) {
+        return () => {
+            navigate(`${drive_id}`)
+        }
+    }
+    return <div className="overflow-x-auto px-24">
+        < table className="table w-full" >
             <thead>
                 <tr>
                     <th>Status</th>
@@ -24,12 +33,28 @@ const DrivesTable = ({ drives }) => (
                         <td>{drive.user.id}</td>
                         <td>{new Date(drive.createdAt).toLocaleString()}</td>
                         <td>{new Date(drive.updatedAt).toLocaleString()}</td>
-                        <td><a href={`/homepage/${drive.id}`} className='btn btn-neutral btn-sm'> View</a></td>
+                        <td><button onClick={handleViewButton(drive.id)} className='btn btn-neutral btn-sm'> View</button></td>
                     </tr>
                 ))}
             </tbody>
-        </table>
-    </div>
-);
+        </table >
+    </div >
+}
+
+
+const DrivesTable = () => {
+    const [drives, setDrives] = useState(null);
+    useEffect(() => {
+        async function fetchData() {
+            const _drives = await getRides();
+            setDrives(_drives);
+        }
+        fetchData();
+    }, []);
+    return <>
+        {drives ? <Table drives={drives} /> : <div>Loading data </div>}
+    </>
+
+};
 
 export default DrivesTable;
