@@ -16,7 +16,13 @@ Sonnet is a logistics platform designed for users to ship their parcel. It lever
 - **Backend:** FastAPI, SQLAlchemy, PostgreSQL
 - **Security:** OAuth2 authentication
 - **Infrastructure:** Optimized for high performance and real-time processing
-
+## ScreenShots
+| Driver Interface | User Interface| 
+|--------|-----|
+| ![alt1](public/driver_homepage.png)|![alt2](public/user_homepage.png)|
+|![alt2](public/driver_update_vehicle_information.png)|![alt2](public/user_book_ride_page_1.png)|
+|![alt2](public/driver_new_ride_prompt.png)|![alt2](public/user_book_ride_page_2.png)|
+|![alt2](public/swagger_ui.png)|![alt2](public/user_drive_information_page.png)|
 ##  Project Structure
 ```
 Sonnet/
